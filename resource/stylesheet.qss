@@ -1,0 +1,8 @@
+QMainWindow {
+    background-color: #333333;
+        color: #AAAAAA;
+}
+
+#BarChartLightgrids {
+    color: #AAAAAA;
+}
