@@ -1,4 +1,4 @@
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, Property, QPropertyAnimation, QEasingCurve
 from PySide6.QtGui import QPainter, QColor
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QLabel, QGraphicsDropShadowEffect
 
@@ -15,8 +15,9 @@ class BarChart(QWidget):
         self.bar_names = bar_names
         self.object_name = object_name
         # Create a layout
-        self.init_data()
+
         self.init_layout()
+        self.init_data()
         self.set_behavior()
 
 
@@ -36,7 +37,7 @@ class BarChart(QWidget):
         layout.addStretch(0)
         layout.addWidget(self. title)
         self.bars = Bars(width=100, bar_names=self.bar_names)
-        self.bars.set_data(self.data)
+
         layout.addWidget(self.bars)
         self.setLayout(layout)
 
@@ -46,7 +47,7 @@ class BarChart(QWidget):
 
     def set_data(self, data):
         self.data = data
-
+        self.bars.set_data(self.data)
         self.update()
     def setObjectName(self, name):
         super().setObjectName(name)
@@ -65,14 +66,46 @@ class Bars(QWidget):
         # add a Title
         self.setMouseTracking(True)
         self.bar_names = bar_names
-
+        self._animatedValue = 0
+        self.previous_data = {}
+        self.data = {}
         # Set the layout
         self.setLayout(layout)
+    # def set_data(self, data):
+    #     self.previous_data = self.data
+    #     self.data = data
+    #     # sum of all values
+    #     self.total = sum(data.values())
+    #     self.update()
+    #     self._animatedValue = 0
+
+
+
+    @Property(float)
+    def animatedValue(self):
+        return self._animatedValue
+
+    @animatedValue.setter
+    def animatedValue(self, value):
+        self._animatedValue = value
+        self.update()
+
+    def animate(self):
+        self.animation = QPropertyAnimation(self, b"animatedValue")
+        self.animation.setDuration(500)  # animation duration 1 second
+        self.animation.setStartValue(0)
+        self.animation.setEndValue(1)
+        self.animation.setEasingCurve(QEasingCurve.InOutQuad)
+        self.animation.start()
+
     def set_data(self, data):
+        self.previous_data = self.data
         self.data = data
         # sum of all values
         self.total = sum(data.values())
-        self.update()
+        self.animate()  # start the animation
+
+
     def paintEvent(self, event):
 
         # draw the bar chart with the data provided, the data is a dictionary with the key as the label and the value as the height of the bar
@@ -92,10 +125,15 @@ class Bars(QWidget):
         ]
         bar_width = self.width() / len(self.data)
         spacing = 10
-        for i, (label, value) in enumerate(self.data.items()):
+        for i, (d, p_d) in enumerate(zip(self.data.items(), self.previous_data.items())):
+            label, value = d
+            prev_label, prev_value = p_d
             painter.setPen(Qt.NoPen)
             painter.setBrush(pastel_colors[i % len(pastel_colors)])
-            bar_height = value / self.total * self.height()
+            # animate the change of the bar height using the animated value property and the previous value
+            bar_height = prev_value / self.total * self.height() + (value - prev_value) / self.total * self.height() * self.animatedValue
+
+            # bar_height = value / self.total * self.height() * self.animatedValue
             painter.drawRoundedRect(i * bar_width+spacing, self.height() - bar_height, bar_width- spacing, bar_height, 2, 2)
             # draw the label withing the center bar of the bar
             painter.setPen(Qt.white)

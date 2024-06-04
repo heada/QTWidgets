@@ -6,3 +6,9 @@ QMainWindow {
 #BarChartLightgrids {
     color: #AAAAAA;
 }
+
+QWidget#DataListItem
+{
+    background-color: #FFF;
+    color: #FFFFFF;
+}
